@@ -1,0 +1,12 @@
+.vscode/
+.claude/
+.env
+.env.*
+/bin/
+/backups/
+/secrets/
+docs/
+scripts/
+migrations/
+
+CLAUDE.md

@@ -1,0 +1,15 @@
+# Caddy obtains and renews TLS certificates automatically (Let's Encrypt /
+# ZeroSSL) for {$DOMAIN}. With DOMAIN=localhost it uses a local self-signed CA.
+{$DOMAIN} {
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "no-referrer"
+		-Server
+	}
+
+	reverse_proxy app:8080
+}
