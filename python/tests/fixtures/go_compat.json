@@ -1,0 +1,9 @@
+{
+  "_comment": "Produced by the Go service (internal/auth) for cross-implementation tests. The signing key is a throwaway test key.",
+  "access_token": "eyJhbGciOiJFZERTQSIsImtpZCI6Im9pSXhSZlJpYk1uZHB0ZUUtLVU2SVpxY1NlTThib3A3Znc3dTVpNTRPZU0iLCJ0eXAiOiJhdCtqd3QifQ.eyJpc3MiOiJodHRwczovL2F1dGgudGVzdCIsInN1YiI6IjAxOTJhNmYwLTAwMDAtNzAwMC04MDAwLTAwMDAwMDAwMDAwMSIsImF1ZCI6WyJhcGkiXSwiZXhwIjo0OTQ2NTUyMzEwLCJuYmYiOjE3OTI5NTIzMTAsImlhdCI6MTc5Mjk1MjMxMCwianRpIjoiMzIzZWYyZWYtMTRjYy00MmE5LWE2MGItZjVkYzQxOTY1YWI0Iiwic2lkIjoiMDE5MmE2ZjAtMDAwMC03MDAwLTgwMDAtMDAwMDAwMDAwMDAyIiwia2luZCI6InB1YmxpYyJ9.LRsJ-E5AswyfrfsOEMP0QCewtM0WYxbW5ljVTCzz3ItG4BVLMezltdMRQjOtQWG8IBf9XvJui4X_ogM8uy-ICg",
+  "kid": "oiIxRfRibMndpteE--U6IZqcSeM8bop7fw7u5i54OeM",
+  "password_hash": "$argon2id$v=19$m=1024,t=1,p=1$mnDjK2pFIEQmibF/quAodA$tKemKe7uzNzZsM/1DeksUwaYjNLY4bZ0s7EAyS/Yy50",
+  "session_id": "0192a6f0-0000-7000-8000-000000000002",
+  "signing_key": "-----BEGIN PRIVATE KEY-----\nMC4CAQAwBQYDK2VwBCIEILMA1XL2zLD8xDvQWYXmcITxkBPx0CpUQRlKGfTbniYP\n-----END PRIVATE KEY-----\n",
+  "user_id": "0192a6f0-0000-7000-8000-000000000001"
+}

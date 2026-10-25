@@ -1,0 +1,104 @@
+# Single-VM stack: Caddy (TLS) -> app -> PostgreSQL, plus one-shot jobs for
+# schema migration and least-privilege grants. The schema, grants script,
+# Caddyfile and PostgreSQL init script are shared with the Go service (../).
+#
+#   docker compose up -d                 # db, migrate, grants, app, proxy (in order)
+#   docker compose run --rm app admin create --email you@example.com
+#
+# To use a managed PostgreSQL (e.g. Amazon RDS), remove "bundled-db" from
+# COMPOSE_PROFILES and point DATABASE_URL / MIGRATE_DATABASE_URL at it.
+
+x-logging: &logging
+  driver: json-file
+  options: { max-size: "10m", max-file: "5" }
+
+services:
+  db:
+    image: postgres:17-alpine
+    profiles: [bundled-db]
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}         # owner role, used by migrations only
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      APP_DB_PASSWORD: ${APP_DB_PASSWORD}     # read by the init script
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ../deploy/postgres/10-app-role.sh:/docker-entrypoint-initdb.d/10-app-role.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    networks: [internal]
+    logging: *logging
+
+  # Applies ../migrations with golang-migrate, as the owner role.
+  migrate:
+    image: migrate/migrate:v4.18.1
+    command: ["-path=/migrations", "-database", "${MIGRATE_DATABASE_URL}", "up"]
+    volumes: ["../migrations:/migrations:ro"]
+    depends_on:
+      db: { condition: service_healthy, required: false }
+    networks: [internal]
+    restart: "no"
+
+  # Grants the app role row access only (audit log append-only).
+  grants:
+    image: postgres:17-alpine
+    entrypoint: ["psql", "${MIGRATE_DATABASE_URL}", "-v", "app_role=${APP_DB_USER}", "-f", "/scripts/least_privilege.sql"]
+    volumes: ["../scripts/db:/scripts:ro"]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+    networks: [internal]
+    restart: "no"
+
+  app:
+    image: ${APP_IMAGE:-rbac-service-py:latest}
+    build: .
+    restart: unless-stopped
+    # Config layering: env (.env) first, then Docker secrets (/run/secrets).
+    command: ["serve", "--config-source", "env", "--config-source", "dir:/run/secrets"]
+    env_file: .env
+    environment:
+      HTTP_TRUSTED_PROXIES: 172.28.0.0/24   # the compose network: only Caddy can reach the app
+    secrets: [jwt_signing_key]
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    stop_grace_period: 30s                  # > HTTP_SHUTDOWN_TIMEOUT
+    ulimits:
+      nofile: { soft: 65535, hard: 65535 }  # one descriptor per open connection
+    depends_on:
+      grants: { condition: service_completed_successfully }
+    networks: [internal]
+    logging: *logging
+
+  proxy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    environment:
+      DOMAIN: ${DOMAIN}
+    ports: ["80:80", "443:443", "443:443/udp"]
+    volumes:
+      - ../deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on: [app]
+    networks: [internal]
+    logging: *logging
+
+secrets:
+  jwt_signing_key:
+    file: ./secrets/jwt_signing_key   # make keys
+
+networks:
+  internal:
+    ipam:
+      config: [{ subnet: 172.28.0.0/24 }]
+
+volumes:
+  pgdata:
+  caddy_data:
+  caddy_config:
