@@ -2,7 +2,10 @@
 # schema migration and least-privilege grants. Nothing is provider specific.
 #
 #   docker compose up -d                 # db, migrate, grants, app, proxy (in order)
-#   docker compose run --rm app admin create --email you@example.com
+#   docker compose run --rm app admin create --email you@example.com \
+#     --config-source env --config-source dir:/run/secrets
+#
+# (`run` replaces the service command, so repeat its --config-source flags.)
 #
 # To use a managed PostgreSQL, remove "bundled-db" from COMPOSE_PROFILES and
 # point DATABASE_URL / MIGRATE_DATABASE_URL at it.
@@ -53,7 +56,7 @@ services:
     restart: "no"
 
   app:
-    image: ${APP_IMAGE:-rbac-service:latest}
+    image: ${APP_IMAGE:-gate:latest}
     build: .
     restart: unless-stopped
     # Config layering: env (.env) first, then Docker secrets (/run/secrets).
@@ -86,7 +89,7 @@ services:
 
 secrets:
   jwt_signing_key:
-    file: ./secrets/jwt_signing_key   # rbac-service keys generate > secrets/jwt_signing_key
+    file: ./secrets/jwt_signing_key   # gate keys generate > secrets/jwt_signing_key
 
 networks:
   internal:

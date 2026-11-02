@@ -50,18 +50,18 @@ func rolePermissions(roles []domain.Role) []domain.Permission {
 func ensureCanGrantRoles(ctx context.Context, roles repository.RoleRepository, actor *domain.Principal, ids []uuid.UUID) ([]uuid.UUID, error) {
 	ids = dedupe(ids)
 	if len(ids) > maxRolesPerUser {
-		return nil, domain.Invalid("at most %d roles per user", maxRolesPerUser)
+		return nil, domain.NewValidationError("at most %d roles per user", maxRolesPerUser)
 	}
 	found, err := roles.GetByIDs(ctx, ids)
 	if err != nil {
 		return nil, err
 	}
 	if len(found) != len(ids) {
-		return nil, domain.Invalid("one or more roles do not exist")
+		return nil, domain.NewValidationError("one or more roles do not exist")
 	}
 	for _, r := range found {
 		if r.Audience != domain.UserKindInternal {
-			return nil, domain.Invalid("role %q is a public role and is granted through public types", r.Name)
+			return nil, domain.NewValidationError("role %q is a public role and is granted through public types", r.Name)
 		}
 	}
 	return ids, ensureHolds(actor, rolePermissions(found))
@@ -72,15 +72,15 @@ func ensureCanGrantRoles(ctx context.Context, roles repository.RoleRepository, a
 func ensureCanGrantPublicTypes(ctx context.Context, roles repository.RoleRepository, actor *domain.Principal, types []string) ([]string, error) {
 	types = dedupe(types)
 	if len(types) == 0 {
-		return nil, domain.Invalid("public users need at least one public type")
+		return nil, domain.NewValidationError("public users need at least one public type")
 	}
 	if len(types) > maxPublicTypesPerUser {
-		return nil, domain.Invalid("at most %d public types per user", maxPublicTypesPerUser)
+		return nil, domain.NewValidationError("at most %d public types per user", maxPublicTypesPerUser)
 	}
 	for _, name := range types {
 		t, ok := rbac.LookupPublicType(name)
 		if !ok {
-			return nil, domain.Invalid("unknown public type %q", name)
+			return nil, domain.NewValidationError("unknown public type %q", name)
 		}
 		if t.Role == "" {
 			continue
@@ -118,7 +118,7 @@ func cleanPermissions(perms []domain.Permission) ([]domain.Permission, error) {
 	out = slices.Compact(out)
 	for _, p := range out {
 		if !rbac.IsKnown(p) {
-			return nil, domain.Invalid("unknown permission %q", p)
+			return nil, domain.NewValidationError("unknown permission %q", p)
 		}
 	}
 	return out, nil
@@ -128,7 +128,7 @@ func normalizeEmail(s string) (string, error) {
 	s = strings.ToLower(strings.TrimSpace(s))
 	addr, err := mail.ParseAddress(s)
 	if err != nil || addr.Address != s || len(s) > 254 {
-		return "", domain.Invalid("invalid email address")
+		return "", domain.NewValidationError("invalid email address")
 	}
 	return s, nil
 }
@@ -146,7 +146,7 @@ func normalizePhone(s string) (string, error) {
 		s = "+" + s[2:]
 	}
 	if !e164.MatchString(s) {
-		return "", domain.Invalid("phone must be in international format, e.g. +8801712345678")
+		return "", domain.NewValidationError("phone must be in international format, e.g. +8801712345678")
 	}
 	return s, nil
 }
@@ -170,7 +170,7 @@ func contactInput(email, phone string) (*string, *string, error) {
 		p = &v
 	}
 	if e == nil && p == nil {
-		return nil, nil, domain.Invalid("email or phone is required")
+		return nil, nil, domain.NewValidationError("email or phone is required")
 	}
 	return e, p, nil
 }
@@ -178,7 +178,7 @@ func contactInput(email, phone string) (*string, *string, error) {
 func cleanFullName(s string) (string, error) {
 	s = strings.TrimSpace(s)
 	if len([]rune(s)) > 200 {
-		return "", domain.Invalid("full_name must be at most 200 characters")
+		return "", domain.NewValidationError("full_name must be at most 200 characters")
 	}
 	return s, nil
 }

@@ -111,7 +111,7 @@ func (s *SSOService) linkOrCreate(ctx context.Context, policy sso.Policy, id *ss
 	if email == "" {
 		// The schema requires an email or phone; unverified emails are never
 		// stored as identifiers because they could block the real owner.
-		return nil, domain.Invalid("the identity provider did not supply a verified email")
+		return nil, domain.NewValidationError("the identity provider did not supply a verified email")
 	}
 	name, _ := cleanFullName(id.Name)
 	now := time.Now().UTC()

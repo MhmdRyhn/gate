@@ -1,13 +1,13 @@
-// Package cli defines the rbac-service command line (cobra).
+// Package cli defines the gate command line (cobra).
 //
-//	rbac-service serve                 run the HTTP API
-//	rbac-service seed                  sync permissions, roles, public types
-//	rbac-service admin create          create an admin (password via prompt/stdin)
-//	rbac-service keys generate|public  manage JWT signing keys
-//	rbac-service config print          show effective config (secrets redacted)
-//	rbac-service maintenance purge-sessions
-//	rbac-service healthcheck           container health probe
-//	rbac-service version
+//	gate serve                 run the HTTP API
+//	gate seed                  sync permissions, roles, public types
+//	gate admin create          create an admin (password via prompt/stdin)
+//	gate keys generate|public  manage JWT signing keys
+//	gate config print          show effective config (secrets redacted)
+//	gate maintenance purge-sessions
+//	gate healthcheck           container health probe
+//	gate version
 //
 // Global flag --config-source (repeatable) selects where configuration is
 // read from; later sources override earlier ones.
@@ -47,7 +47,7 @@ func Execute() int {
 func newRootCmd() *cobra.Command {
 	g := &globalFlags{}
 	root := &cobra.Command{
-		Use:           "rbac-service",
+		Use:           "gate",
 		Short:         "Authentication and role-based access control service",
 		SilenceUsage:  true,
 		SilenceErrors: true,

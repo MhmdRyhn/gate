@@ -45,14 +45,14 @@ func (s *UserService) Create(ctx context.Context, actor *domain.Principal, in Cr
 		in.Kind = domain.UserKindInternal
 	}
 	if !in.Kind.Valid() {
-		return nil, domain.Invalid("kind must be %q or %q", domain.UserKindInternal, domain.UserKindPublic)
+		return nil, domain.NewValidationError("kind must be %q or %q", domain.UserKindInternal, domain.UserKindPublic)
 	}
 	var opts repository.CreateUserOptions
 	var err error
 	switch in.Kind {
 	case domain.UserKindInternal:
 		if len(in.PublicTypes) > 0 {
-			return nil, domain.Invalid("public_types are only allowed for public users")
+			return nil, domain.NewValidationError("public_types are only allowed for public users")
 		}
 		if len(in.RoleIDs) > 0 {
 			if !actor.Can(rbac.UsersAssignRoles) {
@@ -64,7 +64,7 @@ func (s *UserService) Create(ctx context.Context, actor *domain.Principal, in Cr
 		}
 	case domain.UserKindPublic:
 		if len(in.RoleIDs) > 0 {
-			return nil, domain.Invalid("public users get access through public_types; role_ids are not allowed")
+			return nil, domain.NewValidationError("public users get access through public_types; role_ids are not allowed")
 		}
 		if opts.PublicTypes, err = ensureCanGrantPublicTypes(ctx, s.roles, actor, in.PublicTypes); err != nil {
 			return nil, err
@@ -99,7 +99,7 @@ func (s *UserService) Get(ctx context.Context, id uuid.UUID) (*UserDetails, erro
 // List returns users matching f.
 func (s *UserService) List(ctx context.Context, f domain.UserFilter) ([]domain.User, error) {
 	if f.Kind != nil && !f.Kind.Valid() {
-		return nil, domain.Invalid("kind must be %q or %q", domain.UserKindInternal, domain.UserKindPublic)
+		return nil, domain.NewValidationError("kind must be %q or %q", domain.UserKindInternal, domain.UserKindPublic)
 	}
 	return s.users.List(ctx, f)
 }
@@ -116,10 +116,10 @@ func (s *UserService) Update(ctx context.Context, actor *domain.Principal, id uu
 	}
 	if patch.Status != nil {
 		if !patch.Status.Valid() {
-			return nil, domain.Invalid("status must be %q or %q", domain.UserStatusActive, domain.UserStatusDisabled)
+			return nil, domain.NewValidationError("status must be %q or %q", domain.UserStatusActive, domain.UserStatusDisabled)
 		}
 		if id == actor.UserID {
-			return nil, domain.Invalid("you cannot change your own status")
+			return nil, domain.NewValidationError("you cannot change your own status")
 		}
 	}
 	if _, err := ensureCanManageUser(ctx, s.users, actor, id); err != nil {
@@ -142,14 +142,14 @@ func (s *UserService) Update(ctx context.Context, actor *domain.Principal, id uu
 // manage both the roles removed and the roles granted.
 func (s *UserService) SetRoles(ctx context.Context, actor *domain.Principal, id uuid.UUID, roleIDs []uuid.UUID) (*UserDetails, error) {
 	if id == actor.UserID {
-		return nil, domain.Invalid("you cannot change your own roles")
+		return nil, domain.NewValidationError("you cannot change your own roles")
 	}
 	u, err := ensureCanManageUser(ctx, s.users, actor, id)
 	if err != nil {
 		return nil, err
 	}
 	if u.Kind != domain.UserKindInternal {
-		return nil, domain.Invalid("public users get access through public types; use the public-types endpoint")
+		return nil, domain.NewValidationError("public users get access through public types; use the public-types endpoint")
 	}
 	if roleIDs, err = ensureCanGrantRoles(ctx, s.roles, actor, roleIDs); err != nil {
 		return nil, err
@@ -169,7 +169,7 @@ func (s *UserService) SetPublicTypes(ctx context.Context, actor *domain.Principa
 		return nil, err
 	}
 	if u.Kind != domain.UserKindPublic {
-		return nil, domain.Invalid("public types can only be set on public users")
+		return nil, domain.NewValidationError("public types can only be set on public users")
 	}
 	if types, err = ensureCanGrantPublicTypes(ctx, s.roles, actor, types); err != nil {
 		return nil, err

@@ -73,8 +73,8 @@ func newAdminCmd(g *globalFlags) *cobra.Command {
 		Long: "Create an internal user with the admin role. The password is read from an\n" +
 			"interactive prompt, or from stdin with --password-stdin; it is never a flag,\n" +
 			"so it cannot leak through shell history or the process list.",
-		Example: "  rbac-service admin create --email you@example.com\n" +
-			"  printf '%s' \"$PW\" | rbac-service admin create --phone +8801700000000 --password-stdin",
+		Example: "  gate admin create --email you@example.com\n" +
+			"  printf '%s' \"$PW\" | gate admin create --phone +8801700000000 --password-stdin",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			password, err := readPassword(cmd, passwordStdin)
 			if err != nil {
@@ -242,7 +242,7 @@ func newVersionCmd() *cobra.Command {
 		Use:   "version",
 		Short: "Print build information",
 		Run: func(cmd *cobra.Command, _ []string) {
-			fmt.Fprintf(cmd.OutOrStdout(), "rbac-service %s (commit %s, built %s)\n", version.Version, version.Commit, version.BuildDate)
+			fmt.Fprintf(cmd.OutOrStdout(), "gate %s (commit %s, built %s)\n", version.Version, version.Commit, version.BuildDate)
 		},
 	}
 }

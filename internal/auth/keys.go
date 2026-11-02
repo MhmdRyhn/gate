@@ -42,10 +42,10 @@ type KeySet struct {
 	verify  map[string]*Key
 }
 
-// LoadKeySet parses the PKCS#8 private signing key and an optional bundle of
+// NewKeySet parses the PKCS#8 private signing key and an optional bundle of
 // PEM public keys (PKIX) still accepted for verification. Both inputs may be
 // PEM text or base64-encoded PEM, which is easier to pass in env vars.
-func LoadKeySet(signingKey, verificationKeys string) (*KeySet, error) {
+func NewKeySet(signingKey, verificationKeys string) (*KeySet, error) {
 	der, err := firstPEM(signingKey, "PRIVATE KEY")
 	if err != nil {
 		return nil, fmt.Errorf("JWT signing key: %w", err)

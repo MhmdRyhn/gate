@@ -19,7 +19,7 @@ func newIssuer(t *testing.T, kind string) (*TokenIssuer, string) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	ks, err := LoadKeySet(pemKey, "")
+	ks, err := NewKeySet(pemKey, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -90,7 +90,7 @@ func TestKeyRotation(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	ks, err := LoadKeySet(newPEM, oldPub)
+	ks, err := NewKeySet(newPEM, oldPub)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -111,8 +111,8 @@ func TestThumbprintRFC8037(t *testing.T) {
 	}
 }
 
-func TestLoadKeySetRejectsWeakOrBadKeys(t *testing.T) {
-	if _, err := LoadKeySet("not a key", ""); err == nil {
+func TestNewKeySetRejectsWeakOrBadKeys(t *testing.T) {
+	if _, err := NewKeySet("not a key", ""); err == nil {
 		t.Error("garbage accepted")
 	}
 	if _, _, err := GenerateKey("rsa", 1024); err == nil {
@@ -120,7 +120,7 @@ func TestLoadKeySetRejectsWeakOrBadKeys(t *testing.T) {
 	}
 	pemKey, _, _ := GenerateKey("ed25519", 0)
 	b64 := base64.StdEncoding.EncodeToString([]byte(pemKey))
-	if _, err := LoadKeySet(b64, ""); err != nil {
+	if _, err := NewKeySet(b64, ""); err != nil {
 		t.Errorf("base64 PEM rejected: %v", err)
 	}
 }

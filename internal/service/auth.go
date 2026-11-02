@@ -122,7 +122,7 @@ func (s *AuthService) Register(ctx context.Context, in RegisterInput) (*TokenPai
 	}
 	t, ok := rbac.LookupPublicType(in.Type)
 	if !ok {
-		return nil, domain.Invalid("unknown type %q", in.Type)
+		return nil, domain.NewValidationError("unknown type %q", in.Type)
 	}
 	if !t.SelfRegistration {
 		return nil, fmt.Errorf("%w: type %q cannot self-register", domain.ErrForbidden, in.Type)
@@ -218,13 +218,13 @@ func (s *AuthService) ChangePassword(ctx context.Context, p *domain.Principal, c
 		return err
 	}
 	if u.PasswordHash == "" {
-		return domain.Invalid("this account signs in with SSO and has no password")
+		return domain.NewValidationError("this account signs in with SSO and has no password")
 	}
 	if ok, _ := s.hasher.Verify(u.PasswordHash, current); !ok {
 		return domain.ErrInvalidCredentials
 	}
 	if err := auth.ValidatePassword(next); err != nil {
-		return domain.Invalid("%s", err.Error())
+		return domain.NewValidationError("%s", err.Error())
 	}
 	hash, err := s.hasher.Hash(next)
 	if err != nil {
@@ -292,7 +292,7 @@ func (s *AuthService) newUser(email, phone, fullName, password string, kind doma
 		return nil, err
 	}
 	if err := auth.ValidatePassword(password); err != nil {
-		return nil, domain.Invalid("%s", err.Error())
+		return nil, domain.NewValidationError("%s", err.Error())
 	}
 	hash, err := s.hasher.Hash(password)
 	if err != nil {

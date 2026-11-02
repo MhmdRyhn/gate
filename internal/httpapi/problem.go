@@ -54,10 +54,10 @@ func (e errorWriter) write(c *gin.Context, err error) {
 	case errors.Is(err, domain.ErrConflict):
 		writeProblem(c, http.StatusConflict, "conflict", err.Error())
 	case errors.Is(err, domain.ErrUnauthenticated):
-		c.Header("WWW-Authenticate", `Bearer realm="rbac-service"`)
+		c.Header("WWW-Authenticate", `Bearer realm="gate"`)
 		writeProblem(c, http.StatusUnauthorized, "unauthenticated", "authentication required")
 	case errors.Is(err, domain.ErrInvalidToken):
-		c.Header("WWW-Authenticate", `Bearer realm="rbac-service", error="invalid_token"`)
+		c.Header("WWW-Authenticate", `Bearer realm="gate", error="invalid_token"`)
 		writeProblem(c, http.StatusUnauthorized, "invalid_token", "invalid or expired token")
 	case errors.Is(err, domain.ErrInvalidCredentials):
 		writeProblem(c, http.StatusUnauthorized, "invalid_credentials", "invalid credentials")

@@ -17,8 +17,8 @@ import (
 const maxFileValueBytes = 1 << 20
 
 // EnvSource reads the process environment. With a Prefix, only variables
-// starting with it are used and the prefix is stripped ("RBAC_HTTP_ADDR"
-// with prefix "RBAC_" yields "HTTP_ADDR").
+// starting with it are used and the prefix is stripped ("GATE_HTTP_ADDR"
+// with prefix "GATE_" yields "HTTP_ADDR").
 type EnvSource struct {
 	Prefix string
 }

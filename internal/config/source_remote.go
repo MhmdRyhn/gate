@@ -14,14 +14,14 @@ import (
 // remoteTimeout bounds every remote config fetch so startup cannot hang.
 const remoteTimeout = 10 * time.Second
 
-func defaultHTTPClient() *http.Client { return &http.Client{Timeout: remoteTimeout} }
+func newHTTPClient() *http.Client { return &http.Client{Timeout: remoteTimeout} }
 
 // ConsulSource reads all keys under Prefix from Consul's KV store over its
-// HTTP API (no SDK needed). "rbac-service/DATABASE_URL" becomes
+// HTTP API (no SDK needed). "gate/DATABASE_URL" becomes
 // "DATABASE_URL"; nested folders are flattened with "_".
 type ConsulSource struct {
 	Address string // e.g. "https://consul.service:8501"
-	Prefix  string // e.g. "rbac-service"
+	Prefix  string // e.g. "gate"
 	Token   string // ACL token; sent as X-Consul-Token
 	Client  *http.Client
 }
@@ -69,7 +69,7 @@ func (s *ConsulSource) client() *http.Client {
 	if s.Client != nil {
 		return s.Client
 	}
-	return defaultHTTPClient()
+	return newHTTPClient()
 }
 
 // HTTPJSONSource fetches a flat JSON object ({"KEY": "value", ...}) from a
@@ -88,7 +88,7 @@ func (s *HTTPJSONSource) Name() string { return "http:" + s.URL }
 func (s *HTTPJSONSource) Load(ctx context.Context) (map[string]string, error) {
 	client := s.Client
 	if client == nil {
-		client = defaultHTTPClient()
+		client = newHTTPClient()
 	}
 	body, status, err := fetch(ctx, client, s.URL, s.Headers)
 	if err != nil {
@@ -103,14 +103,12 @@ func (s *HTTPJSONSource) Load(ctx context.Context) (map[string]string, error) {
 	}
 	out := make(map[string]string, len(doc))
 	for k, v := range doc {
-		switch v := v.(type) {
-		case string:
-			out[NormalizeKey(k)] = v
-		case float64, bool:
-			out[NormalizeKey(k)] = fmt.Sprint(v)
-		case nil:
-		default:
+		s, ok, err := scalarString(v)
+		if err != nil {
 			return nil, fmt.Errorf("key %s: nested values are not supported", k)
+		}
+		if ok {
+			out[NormalizeKey(k)] = s
 		}
 	}
 	return out, nil

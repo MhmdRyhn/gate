@@ -127,10 +127,10 @@ func validateRole(r *domain.Role) error {
 	r.Name = strings.TrimSpace(r.Name)
 	r.Description = strings.TrimSpace(r.Description)
 	if !roleNameFormat.MatchString(r.Name) {
-		return domain.Invalid("name must be 2-50 chars of a-z, 0-9, '_' or '-', starting with a letter")
+		return domain.NewValidationError("name must be 2-50 chars of a-z, 0-9, '_' or '-', starting with a letter")
 	}
 	if len([]rune(r.Description)) > 500 {
-		return domain.Invalid("description must be at most 500 characters")
+		return domain.NewValidationError("description must be at most 500 characters")
 	}
 	perms, err := cleanPermissions(r.Permissions)
 	if err != nil {

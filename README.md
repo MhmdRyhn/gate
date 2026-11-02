@@ -1,4 +1,4 @@
-# rbac-service
+# gate
 
 An authentication and role-based access control service in Go, for applications with two audiences:
 
@@ -7,7 +7,7 @@ An authentication and role-based access control service in Go, for applications 
 
 Users sign in with an **email or phone number** and a password. SSO hooks (OIDC/OAuth 2.0) are in place for adding providers later.
 
-**Stack:** gin · gorm (PostgreSQL) · zap · Google Wire · cobra · EdDSA/RS256 JWT · Argon2id
+**Stack:** gin · gorm (PostgreSQL) · zap · Google Wire · cobra · viper + AWS SDK v2 (YAML/JSON/TOML config documents) · EdDSA/RS256 JWT · Argon2id
 
 ```sh
 make dev-db migrate grants seed     # local PostgreSQL, schema, grants, RBAC registry
@@ -28,10 +28,11 @@ make run                            # http://localhost:8080
 ## Repository layout
 
 ```
-cmd/rbac-service/        main: hands over to the CLI
+cmd/main.go              main: hands over to the CLI
 internal/cli/            cobra commands (serve, seed, admin, keys, config, maintenance, ...)
 internal/app/            Wire providers and injectors (wire_gen.go is generated)
-internal/config/         typed config + pluggable sources (env, file, dir, consul, http)
+internal/config/         typed config + pluggable sources (env, .env/YAML/JSON/TOML file, dir, consul, AWS, http)
+internal/configkit/      viper-based loader for YAML/JSON/TOML documents (files, Consul, SSM, AppConfig, Secrets Manager)
 internal/domain/         entities and domain errors (no dependencies)
 internal/rbac/           permissions, default roles, public user types (source of truth)
 internal/auth/           Argon2id, JWT keys/JWKS/issuer, opaque tokens

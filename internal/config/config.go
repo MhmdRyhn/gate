@@ -12,7 +12,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"reflect"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/sethvargo/go-envconfig"
@@ -99,7 +101,7 @@ type JWTConfig struct {
 	// Issuer ("iss") should be the public base URL of this service.
 	Issuer string `env:"JWT_ISSUER, required"`
 	// Audience ("aud") identifies the APIs that accept the token.
-	Audience string `env:"JWT_AUDIENCE, default=rbac-service"`
+	Audience string `env:"JWT_AUDIENCE, default=gate"`
 	// SigningKey is a PKCS#8 PEM (or base64 of it) Ed25519 or RSA private key.
 	SigningKey Secret `env:"JWT_SIGNING_KEY, required"`
 	// VerificationKeys are extra PEM public keys still accepted for
@@ -125,10 +127,19 @@ func Load(ctx context.Context, sources ...Source) (*Config, error) {
 // tags. It is independent of Config so other components can reuse it.
 func Decode(ctx context.Context, target any, sources ...Source) error {
 	merged := map[string]string{}
+	var known map[string]bool
 	for _, s := range sources {
 		kv, err := s.Load(ctx)
 		if err != nil {
 			return fmt.Errorf("config source %s: %w", s.Name(), err)
+		}
+		if _, strict := s.(strictSource); strict {
+			if known == nil {
+				known = envKeys(reflect.TypeOf(target))
+			}
+			if err := checkKnown(kv, known); err != nil {
+				return fmt.Errorf("config source %s: %w", s.Name(), err)
+			}
 		}
 		for k, v := range kv {
 			merged[k] = v
@@ -138,6 +149,53 @@ func Decode(ctx context.Context, target any, sources ...Source) error {
 		Target:   target,
 		Lookuper: envconfig.MapLookuper(merged),
 	})
+}
+
+// strictSource is implemented by sources whose every key is meant for the
+// application, such as config documents. Their unknown keys are rejected,
+// since they are almost certainly typos. The environment, by contrast, holds
+// many unrelated variables, so it is not strict.
+type strictSource interface{ strictKeys() }
+
+func checkKnown(kv map[string]string, known map[string]bool) error {
+	var unknown []string
+	for k := range kv {
+		if !known[k] {
+			unknown = append(unknown, k)
+		}
+	}
+	if len(unknown) == 0 {
+		return nil
+	}
+	slices.Sort(unknown)
+	return fmt.Errorf("unknown setting(s) %s: keys are the flat setting names (e.g. ACCESS_TOKEN_TTL); "+
+		"a nested section only works when the setting starts with that prefix (database: {url: ...} = DATABASE_URL)",
+		strings.Join(unknown, ", "))
+}
+
+// envKeys returns the keys named by `env:"KEY, ..."` tags in t (a struct or
+// pointer to one), recursing into nested structs without a tag.
+func envKeys(t reflect.Type) map[string]bool {
+	keys := map[string]bool{}
+	var walk func(reflect.Type)
+	walk = func(t reflect.Type) {
+		for t.Kind() == reflect.Pointer {
+			t = t.Elem()
+		}
+		if t.Kind() != reflect.Struct {
+			return
+		}
+		for f := range t.Fields() {
+			if tag, ok := f.Tag.Lookup("env"); ok {
+				name, _, _ := strings.Cut(tag, ",")
+				keys[strings.TrimSpace(name)] = true
+			} else {
+				walk(f.Type)
+			}
+		}
+	}
+	walk(t)
+	return keys
 }
 
 // Validate checks cross-field rules that struct tags cannot express.

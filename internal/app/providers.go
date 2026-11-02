@@ -68,7 +68,7 @@ func ProvideDatabase(ctx context.Context, cfg config.DatabaseConfig, log *zap.Lo
 
 // ProvideKeySet loads the JWT signing and verification keys.
 func ProvideKeySet(cfg config.JWTConfig) (*auth.KeySet, error) {
-	return auth.LoadKeySet(cfg.SigningKey.Value(), cfg.VerificationKeys.Value())
+	return auth.NewKeySet(cfg.SigningKey.Value(), cfg.VerificationKeys.Value())
 }
 
 // ProvideTokenIssuer builds the access token issuer.
